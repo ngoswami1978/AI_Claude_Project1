@@ -704,22 +704,241 @@ Claude will extract:
 
 ---
 
-## 🔄 Version Control (GitLab)
+## 🔄 Version Control — GitHub / GitLab Setup & Workflow
+
+---
+
+### A. ONE-TIME SETUP (Do This First)
+
+#### Step 1 — Install GitHub CLI (Optional but Recommended)
+```
+Open browser → https://cli.github.com → Download for Windows → Install
+Then in terminal:
+  gh auth login
+  → Select GitHub.com
+  → Select HTTPS
+  → Login with browser
+```
+
+#### Step 2 — Create Repository on GitHub
+```
+Option A — Using GitHub CLI (if installed):
+  cd "C:\Workarea\Practice\Claude Project Auto generated\ManpowerContract"
+  gh repo create ManpowerContract --private --source=. --remote=origin --push
+
+Option B — Using Browser (if CLI not installed):
+  1. Go to https://github.com/new
+  2. Repository name: ManpowerContract
+  3. Description: "Manpower Contract Management — .NET Core MVC + Web API"
+  4. Select: Private
+  5. DO NOT check "Initialize with README" (we already have code)
+  6. Click "Create repository"
+  7. Copy the HTTPS URL (e.g., https://github.com/YourUsername/ManpowerContract.git)
+  8. Run in terminal:
+     cd "C:\Workarea\Practice\Claude Project Auto generated\ManpowerContract"
+     git remote add origin https://github.com/YourUsername/ManpowerContract.git
+     git push -u origin main
+```
+
+#### Step 3 — Verify Setup
+```bash
+git remote -v
+# Should show:
+# origin  https://github.com/YourUsername/ManpowerContract.git (fetch)
+# origin  https://github.com/YourUsername/ManpowerContract.git (push)
+
+git log --oneline
+# Should show your commits
+```
+
+---
+
+### B. DAILY WORKFLOW — How to Use Git Day-to-Day
+
+#### Scenario 1: Update skill.md / instruction.md / mainproject.md
+```bash
+# 1. Always pull latest first (in case team members changed something)
+git pull origin main
+
+# 2. Make your changes to the files (edit in VS Code / Claude / etc.)
+
+# 3. Check what changed
+git status
+git diff
+
+# 4. Stage and commit
+git add instruction.md skill.md mainproject.md
+git commit -m "docs: update permission matrix and add copy permission feature"
+
+# 5. Push to GitHub
+git push origin main
+```
+
+#### Scenario 2: Add a New Screen (Feature Branch)
+```bash
+# 1. Create a feature branch
+git checkout -b feature/permission-management
+
+# 2. Generate code using Claude + mainproject.md
+# 3. Add all new files
+git add Controllers/PermissionController.cs
+git add Views/Permission/
+git add wwwroot/js/permission.js
+git add Database/04_Permission_SP.sql
+
+# 4. Commit
+git commit -m "feat: add Permission Management screen with copy permission"
+
+# 5. Push feature branch
+git push -u origin feature/permission-management
+
+# 6. Create Pull Request (PR) on GitHub
+#    Option A (CLI):  gh pr create --title "Add Permission Management" --body "..."
+#    Option B (Browser): Go to GitHub → "Compare & pull request"
+
+# 7. After PR is approved and merged → switch back to main
+git checkout main
+git pull origin main
+
+# 8. Delete old feature branch
+git branch -d feature/permission-management
+```
+
+#### Scenario 3: Collaborating with Team Members
+```bash
+# Before starting work every day:
+git pull origin main
+
+# If there's a conflict:
+git status                    # See conflicted files
+# Open the file → resolve <<<< ==== >>>> markers
+git add <resolved-file>
+git commit -m "fix: resolve merge conflict in skill.md"
+git push origin main
+```
+
+---
+
+### C. WHAT GOES WHERE — File Tracking Rules
+
+```
+✅ ALWAYS COMMIT (track in Git):
+   instruction.md          ← Workflow guide
+   skill.md                ← Architecture patterns
+   mainproject.md          ← Master prompt
+   *.cs                    ← C# source code
+   *.cshtml                ← Razor views
+   *.js                    ← JavaScript files
+   *.css                   ← Stylesheets
+   *.sql                   ← Database scripts
+   .gitignore              ← Git ignore rules
+   *.csproj, *.sln         ← Project files
+
+❌ NEVER COMMIT (already in .gitignore):
+   bin/, obj/              ← Build output
+   .vs/                    ← Visual Studio cache
+   appsettings.Development.json  ← Local secrets
+   appsettings.Production.json   ← Production secrets
+   node_modules/           ← NPM packages
+   *.pfx, *.key            ← Certificates
+   .env                    ← Environment variables
+```
+
+---
+
+### D. BRANCH STRATEGY
+
+```
+main              ← Production-ready (protected)
+├── staging       ← Testing/QA
+├── feature/xxx   ← New screens
+├── fix/xxx       ← Bug fixes
+└── docs/xxx      ← Documentation updates (like updating MD files)
+
+Branch Naming Convention:
+  feature/permission-management
+  feature/login-screen
+  fix/role-permission-save-bug
+  docs/update-skill-md-colors
+```
+
+---
+
+### E. COMMIT MESSAGE FORMAT
+
+```
+Type: description
+
+Types:
+  feat:     New feature         → feat: add permission management screen
+  fix:      Bug fix             → fix: role dropdown not loading on edit
+  docs:     Documentation       → docs: update skill.md with teal theme colors
+  refactor: Code restructure    → refactor: extract BaseRepository from repos
+  style:    CSS/formatting      → style: update sidebar active color to red
+  db:       Database changes    → db: add usp_RolePermission_COPYFROMROLE SP
+  test:     Tests               → test: add unit tests for AuthService
+  chore:    Build/config        → chore: update .gitignore for node_modules
+```
+
+---
+
+### F. QUICK REFERENCE — COMMON GIT COMMANDS
 
 ```bash
-# Standard branch strategy
-main          ← Production (protected)
-staging       ← Testing
-feature/xxx   ← Your new screen
+# ═══ STATUS & HISTORY ═══
+git status                          # What files changed?
+git diff                            # See exact changes
+git log --oneline -10               # Last 10 commits
+git log --oneline --graph           # Visual branch tree
 
-# Before creating Merge Request:
-git pull origin main
-git checkout -b feature/your-screen-name
-# ... make changes ...
-git add .
-git commit -m "feat: add YourScreenName screen"
-git push origin feature/your-screen-name
-# → Create MR in GitLab
+# ═══ BRANCHING ═══
+git branch                          # List local branches
+git branch -a                       # List all (incl. remote)
+git checkout -b feature/xyz         # Create + switch to new branch
+git checkout main                   # Switch to main
+git branch -d feature/xyz           # Delete merged branch
+
+# ═══ STAGING & COMMITTING ═══
+git add filename.cs                 # Stage specific file
+git add *.md                        # Stage all .md files
+git add .                           # Stage everything (use carefully)
+git commit -m "feat: description"   # Commit with message
+git commit --amend                  # Fix last commit message
+
+# ═══ SYNCING WITH REMOTE ═══
+git pull origin main                # Download latest from GitHub
+git push origin main                # Upload to GitHub
+git push -u origin feature/xyz      # Push new branch + set upstream
+git fetch                           # Download info without merging
+
+# ═══ UNDO (USE WITH CAUTION) ═══
+git checkout -- filename.cs         # Discard changes in one file
+git stash                           # Temporarily save uncommitted changes
+git stash pop                       # Restore stashed changes
+```
+
+---
+
+### G. GITHUB + CLAUDE CODE WORKFLOW
+
+```
+The ideal workflow for using Claude Code with this project:
+
+1. Pull latest:     git pull origin main
+2. Open Claude:     Ask Claude to update/generate code
+3. Review changes:  git diff  (check what Claude changed)
+4. Stage files:     git add <specific-files>
+5. Commit:          git commit -m "feat: description"
+6. Push:            git push origin main
+
+For major features:
+1. Create branch:   git checkout -b feature/xyz
+2. Work with Claude: Generate code, update MD files
+3. Commit often:    Small, focused commits
+4. Push branch:     git push -u origin feature/xyz
+5. Create PR:       On GitHub (or via gh pr create)
+6. Review + Merge:  On GitHub
+7. Clean up:        git checkout main && git pull
 ```
 
 ---
