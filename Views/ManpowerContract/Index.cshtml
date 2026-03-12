@@ -1,0 +1,162 @@
+@model ManpowerContract.ViewModels.ManpowerContractViewModel
+@{
+    ViewData["Title"] = "Manpower Contract Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-2">
+    <small class="text-muted">You are here : Manpower Contract Database / Manpower Contract Database</small>
+</nav>
+
+<div class="container-fluid px-0">
+
+    <!-- Page Title -->
+    <h4 class="fw-bold mb-3">Manpower Contract Management</h4>
+
+    <!-- ── FILTER PANEL ─────────────────────────────────────── -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body pb-2">
+            <div class="row g-3">
+                <!-- Row 1 -->
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Group Company.</label>
+                    <select id="filterGroupCompany" class="form-select form-select-sm select2">
+                        @foreach (var item in Model.GroupCompanyList)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Plant Name.</label>
+                    <select id="filterPlant" class="form-select form-select-sm select2">
+                        @foreach (var item in Model.PlantList)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">ERP Supplier Name.</label>
+                    <select id="filterSupplier" class="form-select form-select-sm select2">
+                        @foreach (var item in Model.SupplierList)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Supplier Country.</label>
+                    <select id="filterSupplierCountry" class="form-select form-select-sm select2">
+                        <option value="">Select</option>
+                        <option>India</option><option>France</option><option>Spain</option>
+                        <option>Germany</option><option>UAE</option><option>Czech Republic</option>
+                    </select>
+                </div>
+                <!-- Row 2 -->
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Contracted.</label>
+                    <select id="filterContracted" class="form-select form-select-sm select2">
+                        <option value="">Select</option>
+                        <option>Yes</option><option>No</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Worker type.</label>
+                    <select id="filterWorkerType" class="form-select form-select-sm select2">
+                        <option value="">Select</option>
+                        @foreach (var item in Model.WorkerTypeList)
+                        {
+                            <option value="@item.Value">@item.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-2 mt-3 mb-1">
+                <button class="btn btn-sm btn-success px-3" onclick="SearchRecords()">
+                    <i class="bi bi-search"></i> Search
+                </button>
+                <button class="btn btn-sm btn-secondary px-3" onclick="ClearFilters()">
+                    Cancel Search
+                </button>
+                <button class="btn btn-sm px-3" style="background:#009688;color:#fff;" onclick="OpenAddModal()">
+                    <i class="bi bi-plus-circle"></i> Add New
+                </button>
+                <button class="btn btn-sm btn-warning px-3" onclick="ImportExcel()">
+                    <i class="bi bi-upload"></i> Import Excel Data
+                </button>
+                <button class="btn btn-sm px-3" style="background:#2e7d32;color:#fff;" onclick="ExportToExcel()">
+                    <i class="bi bi-download"></i> Export To Excel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── DATA GRID ────────────────────────────────────────── -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="contractTable" class="table table-bordered table-hover table-sm mb-0 w-100">
+                    <thead style="background:#009688;color:#fff;">
+                        <tr>
+                            <th style="width:90px;">Edit</th>
+                            <th>Year <span class="text-warning">*</span></th>
+                            <th>Month <span class="text-warning">*</span></th>
+                            <th>RCO <span class="text-warning">*</span></th>
+                            <th>Division <span class="text-warning">*</span></th>
+                            <th>Group Company <span class="text-warning">*</span></th>
+                            <th>Plant Name <span class="text-warning">*</span></th>
+                            <th>Plant Country <span class="text-warning">*</span></th>
+                            <th>Global Supplier Name <span class="text-warning">*</span></th>
+                            <th>ERP Supplier Name <span class="text-warning">*</span></th>
+                            <th>Supplier Name Remarks</th>
+                            <th>Supplier Country</th>
+                            <th>Annual Supplier Spend <span class="text-warning">*</span></th>
+                            <th>Currency <span class="text-warning">*</span></th>
+                            <th>Contracted</th>
+                            <th>Contracted-Start Date <span class="text-warning">*</span></th>
+                            <th>Contracted-End Date <span class="text-warning">*</span></th>
+                        </tr>
+                        <!-- Column search row -->
+                        <tr class="column-search" style="background:#00796b;">
+                            <th></th>
+                            @for (int i = 0; i < 16; i++) {
+                                <th><input type="text" class="form-control form-control-sm col-search" placeholder="Contains..." style="font-size:11px;height:24px;" /></th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ── ADD / EDIT MODAL ─────────────────────────────────────── -->
+@await Html.PartialAsync("_FormModal", Model)
+
+<!-- Hidden CSRF token for AJAX -->
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // Pass dropdown data to JS
+        var dropdownData = {
+            groupCompany : @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                               Model.GroupCompanyList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+            supplier     : @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                               Model.SupplierList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+            currency     : @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                               Model.CurrencyList.Where(x=>x.Value!="").Select(x=>new{value=x.Value,text=x.Text}))),
+            month        : @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                               Model.MonthList.Select(x=>new{value=x.Value,text=x.Text}))),
+            workerType   : @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(
+                               Model.WorkerTypeList.Select(x=>new{value=x.Value,text=x.Text})))
+        };
+    </script>
+    <script src="~/js/manpowercontract.js"></script>
+}

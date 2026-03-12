@@ -1,0 +1,734 @@
+You are a full-stack developer expert in:
+- Frontend: ASP.NET Core MVC (Razor Views), jQuery, Bootstrap 5, DataTables.js, Select2, SweetAlert2
+- Backend: C# ASP.NET Core MVC Controllers, Service Layer, Repository Pattern (ADO.NET)
+- Database: Microsoft SQL Server (T-SQL)
+
+I will provide you with a screen layout image or Excel file describing a UI form/screen.
+Your job is to analyze the layout and generate complete, production-ready code.
+
+═══════════════════════════════════════════
+INSTRUCTIONS — FOLLOW IN EXACT ORDER
+═══════════════════════════════════════════
+
+STEP 1 — ANALYZE THE LAYOUT
+────────────────────────────
+- Carefully read the layout I provide
+- Identify all UI elements:
+  • Input fields (text, number, date, dropdown, checkbox, radio)
+  • Buttons (Save, Search, Clear, Export, Delete)
+  • Grids / tables (with columns, actions)
+  • Tabs, modals, panels
+  • Labels and their field mappings
+- Identify which fields are:
+  • Mandatory (mark with * in UI)
+  • Read-only / auto-populated (e.g. auto-filled from another selection)
+  • Dropdowns (static or dynamic from DB)
+  • Search/filter fields vs form fields
+  • Display-only join fields (populated from DB joins — NOT submitted by the form)
+
+═══════════════════════════════════════════
+STEP 2 — DATABASE SCRIPTS (SQL SERVER)
+═══════════════════════════════════════════
+
+Generate complete T-SQL scripts in this order:
+
+1. CREATE TABLE statements
+   - Use proper data types (NVARCHAR, INT, DECIMAL, BIT, DATETIME)
+   - Add PRIMARY KEY with IDENTITY(1,1)
+   - Add FOREIGN KEY constraints where applicable
+   - Add DEFAULT values and NOT NULL constraints
+   - Include audit columns: C_USER_ID, C_DATETIME, M_USER_ID, M_DATETIME
+   - Add IS_DELETED BIT NOT NULL DEFAULT 0 for soft delete on all main tables
+   - Create indexes on all foreign key columns and commonly searched columns
+
+2. STORED PROCEDURES — generate for each table:
+   - usp_TableName_INSERT   → Insert new record
+   - usp_TableName_UPDATE   → Update existing record
+   - usp_TableName_DELETE   → Soft delete (set IS_DELETED = 1)
+   - usp_TableName_GETBYID  → Fetch single record by ID with all joins
+   - usp_TableName_SEARCH   → Search/filter with optional NULL parameters
+
+   Rules for every stored procedure:
+   - Always SET NOCOUNT ON at the top
+   - Always wrap in BEGIN TRY / BEGIN CATCH with ROLLBACK TRANSACTION
+   - Use WITH (NOLOCK) hint on all SELECT queries
+   - Return @Result INT OUTPUT (1 = success, 0 = fail)
+   - Return @ErrorMessage NVARCHAR(500) OUTPUT on failure
+   - Parameterized inputs only — never string concatenation
+   - Never use SELECT * — always name columns explicitly
+
+3. LOOKUP / DROPDOWN stored procedures
+   - Write a separate usp_Lookup_TableName SP for every dropdown data source
+   - Always include relevant related columns
+     e.g. for Plants include PLANT_COUNTRY so it can be used for auto-fill
+
+═══════════════════════════════════════════
+STEP 3 — BACKEND C# CODE
+═══════════════════════════════════════════
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+CRITICAL RULE — [ValidateNever] ON DISPLAY FIELDS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Any field on the Model that is:
+  - A display name joined from another table
+    (e.g. GroupCompanyName, PlantName, CurrencyCode, ErpSupplierName)
+  - Auto-populated server-side or client-side
+    (e.g. PlantCountry auto-filled from plant selection)
+  - An optional free-text field
+  - An audit field set by the server (e.g. CDatetime)
+
+MUST be decorated with [ValidateNever]
+from Microsoft.AspNetCore.Mvc.ModelBinding.Validation
+
+Only ID fields (e.g. GroupCompanyId, PlantId) and true
+user-entered required fields should have [Required].
+
+CORRECT EXAMPLE:
+  // User selects from dropdown — ID is what gets submitted
+  [Required(ErrorMessage = "Group Company is required")]
+  public int GroupCompanyId { get; set; }
+
+  // Display only — joined from DB, never in POST body
+  [ValidateNever]
+  public string GroupCompanyName { get; set; }
+
+  // Auto-filled from plant selection on client side
+  [ValidateNever]
+  public string PlantCountry { get; set; }
+
+  // Optional field
+  [ValidateNever]
+  public string SupplierNameRemarks { get; set; }
+
+  // Audit field set server-side
+  [ValidateNever]
+  public DateTime CDatetime { get; set; }
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+1. Model Classes (Models/TableNameModel.cs)
+   - Properties matching DB columns
+   - Use DataAnnotations: [Required], [StringLength], [Range], [Display]
+   - Add: using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+   - Apply [ValidateNever] to ALL display-only, join, auto-populated,
+     optional, and audit fields as described above
+
+2. ViewModel (ViewModels/TableNameViewModel.cs)
+   - For complex screens combining multiple models
+   - Include dropdown lists as List<SelectListItem> — always plain SelectListItem
+   - NEVER subclass SelectListItem — C# generics are invariant and this causes:
+     "Cannot implicitly convert List<CustomItem> to List<SelectListItem>"
+   - If you need extra data per dropdown item (e.g. country per plant),
+     use a separate Dictionary<string, string> property — NOT a subclass
+
+3. Repository / Data Access Layer (Repositories/TableNameRepository.cs)
+   - Interface: ITableNameRepository
+   - Implementation using ADO.NET (SqlConnection, SqlCommand, SqlDataReader)
+   - Use using blocks for all connections and commands
+   - Map SqlDataReader to model in a private helper method
+   - Add a HasColumn() extension method for safe reader column access
+   - Methods: InsertAsync, UpdateAsync, DeleteAsync, GetByIdAsync, SearchAsync
+   - Lookup methods: GetGroupCompaniesAsync, GetPlantsAsync (include Country),
+     GetSuppliersAsync, GetCurrenciesAsync
+
+4. Service Layer (Services/TableNameService.cs)
+   - Interface: ITableNameService
+   - Business validation logic here (date range checks, negative value checks etc.)
+   - Calls repository methods
+   - All dropdown methods return List<SelectListItem>
+   - For cascading dropdowns that need extra data per item, add a separate method
+     returning Dictionary<string, string>
+     e.g. GetPlantCountryMapAsync() returns Dictionary<plantId, country>
+   - NEVER create a subclass of SelectListItem
+
+5. Controller (Controllers/TableNameController.cs)
+   - Index()              → Load main screen with all dropdowns (GET)
+   - GetAll()             → Return JSON for DataTable grid (GET + AJAX)
+   - GetById(int id)      → Return JSON for edit modal (GET + AJAX)
+   - Save()               → Insert or Update (POST + AJAX, [FromBody])
+   - Delete()             → Soft delete (POST + AJAX, [FromBody])
+   - GetCascade()         → Cascading dropdown endpoint (GET + AJAX)
+                            MUST return value, text, AND extra fields like country
+   - ExportExcel()        → Export grid to Excel via ClosedXML (GET)
+   - All POST actions use [ValidateAntiForgeryToken]
+   - Return JSON always as: { success: true/false, message: "...", data: {} }
+   - Log all exceptions with ILogger, never expose raw messages to UI
+
+   CASCADING DROPDOWN ENDPOINT — CORRECT PATTERN:
+
+   [HttpGet]
+   public async Task<IActionResult> GetPlants(int? groupCompanyId)
+   {
+       var plants     = await _service.GetPlantDropdownAsync(groupCompanyId);
+       var countryMap = await _service.GetPlantCountryMapAsync(groupCompanyId);
+       var result = plants
+           .Where(x => x.Value != "")
+           .Select(x => new {
+               value   = x.Value,
+               text    = x.Text,
+               country = countryMap.TryGetValue(x.Value, out var c) ? c : ""
+           });
+       return Json(result);
+   }
+
+6. Program.cs
+   builder.Services.AddScoped<ITableNameRepository, TableNameRepository>();
+   builder.Services.AddScoped<ITableNameService,    TableNameService>();
+   builder.Services.AddAntiforgery(options => {
+       options.HeaderName = "RequestVerificationToken";
+   });
+   builder.Services.AddControllersWithViews()
+       .AddNewtonsoftJson(options => {
+           options.SerializerSettings.ContractResolver =
+               new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+       });
+
+═══════════════════════════════════════════
+STEP 4 — FRONTEND CODE
+═══════════════════════════════════════════
+
+1. Razor View (Views/TableName/Index.cshtml)
+
+   Layout structure:
+   - Breadcrumb at top (You are here: ...)
+   - Page Title (h4 fw-bold)
+   - Filter Panel inside a card with all search dropdowns
+   - Action Buttons row: Search, Cancel Search, Add New, Import Excel, Export To Excel
+   - DataTable grid below with:
+       - Teal sticky header (#009688 background, white text)
+       - Second header row for column-level search inputs (class="col-search")
+       - Edit | Hist action links in first column
+       - Pagination at bottom showing "X - Y of Z records"
+
+   Pass server data to JS like this — NO logic in view, only data:
+   <script>
+     var dropdownData = {
+       groupCompany: @Html.Raw(JsonConvert.SerializeObject(
+                       Model.GroupCompanyList.Where(x=>x.Value!="")
+                       .Select(x=>new{value=x.Value,text=x.Text}))),
+       plant: @Html.Raw(JsonConvert.SerializeObject(
+                Model.PlantList.Where(x=>x.Value!="")
+                .Select(x=>new{value=x.Value,text=x.Text})))
+     };
+   </script>
+
+   Always include: @Html.AntiForgeryToken()
+   Always include JS file in: @section Scripts { <script src="~/js/name.js"></script> }
+   No other JavaScript in the view.
+
+2. Modal Popup (_FormModal.cshtml) — Partial View
+   - Bootstrap 5 Modal with data-bs-backdrop="static"
+   - Teal modal header (#009688)
+   - All form fields from the layout with correct input types
+   - Mandatory fields: <span class="text-danger">*</span>
+   - Read-only / auto-filled fields: readonly attribute + class="bg-light"
+   - All dropdowns use class="select2-modal"
+   - Save button and Close button in modal footer
+
+3. jQuery / JavaScript (wwwroot/js/tablename.js)
+
+Generate the complete JS file with ALL of these functions:
+
+─────────────────────────────────────────
+PAGE LOAD
+─────────────────────────────────────────
+$(document).ready(function () {
+    InitDropdowns();
+    LoadGrid();
+    BindColumnSearch();
+
+    // Cascading: when parent changes, reload child + auto-fill linked field
+    $(document).on('change', '#parentDropdownId', function () {
+        LoadChildByParent($(this).val(), '#childDropdownId');
+    });
+
+    // Auto-fill linked field when child dropdown changes
+    $(document).on('change', '#childDropdownId', function () {
+        var extra = $(this).find('option:selected').attr('data-extra') || '';
+        $('#autoFilledFieldId').val(extra);
+    });
+});
+
+─────────────────────────────────────────
+INIT DROPDOWNS
+─────────────────────────────────────────
+function InitDropdowns() {
+    // Filter panel dropdowns
+    $('.select2').select2({ placeholder: 'Select', allowClear: true, width: '100%' });
+
+    // Modal dropdowns — MUST use dropdownParent to fix z-index inside modal
+    $('.select2-modal').select2({
+        dropdownParent: $('#modalId'),
+        placeholder: 'Select',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Populate modal selects from server-passed data
+    PopulateSelect('#fieldId', dropdownData.fieldName);
+}
+
+function PopulateSelect(selector, items) {
+    var $sel = $(selector);
+    items.forEach(function (item) {
+        $sel.append(new Option(item.text, item.value));
+    });
+}
+
+─────────────────────────────────────────
+CASCADING DROPDOWN WITH AUTO-FILL
+─────────────────────────────────────────
+// Store extra data in data-* attributes on each option
+// This avoids any server-side type issues with SelectListItem
+function LoadChildByParent(parentId, targetSelector) {
+    $.get('/Controller/GetChildren', { parentId: parentId || '' }, function (data) {
+        var $target = $(targetSelector).empty()
+                        .append('<option value="">Select</option>');
+        data.forEach(function (item) {
+            $target.append(
+                $('<option>', { value: item.value, text: item.text })
+                    .attr('data-country', item.country || '')
+                    // add more data-* for other extra fields
+            );
+        });
+        $target.trigger('change.select2');
+    });
+}
+
+─────────────────────────────────────────
+LOAD GRID
+─────────────────────────────────────────
+var gridTable;
+var csrfToken = $('input[name="__RequestVerificationToken"]').val();
+
+function LoadGrid(filters) {
+    if ($.fn.DataTable.isDataTable('#gridTable')) {
+        $('#gridTable').DataTable().destroy();
+        $('#gridTable tbody').empty();
+    }
+    gridTable = $('#gridTable').DataTable({
+        processing: true,
+        ajax: {
+            url: '/Controller/GetAll',
+            type: 'GET',
+            data: filters || {},
+            dataSrc: function (json) { return json.success ? json.data : []; },
+            error: function () { ShowToast('Failed to load data.', 'error'); }
+        },
+        columns: [ /* all columns matching grid layout */ ],
+        pageLength: 10,
+        lengthMenu: [10, 25, 50, 100],
+        dom: 'rtip',
+        scrollX: true,
+        language: {
+            info: '_START_ - _END_ of _TOTAL_ records',
+            paginate: {
+                first: '|◄', previous: '◄ Prev',
+                next: 'Next ►', last: '►|'
+            }
+        }
+    });
+}
+
+─────────────────────────────────────────
+COLUMN SEARCH
+─────────────────────────────────────────
+function BindColumnSearch() {
+    $('#gridTable .col-search').each(function (i) {
+        $(this).off('keyup').on('keyup', function () {
+            gridTable.column(i + 1).search(this.value).draw();
+        });
+    });
+}
+
+─────────────────────────────────────────
+SEARCH / CLEAR FILTERS
+─────────────────────────────────────────
+function SearchRecords() {
+    var filters = {
+        fieldOne: $('#filterOne').val() || null,
+        fieldTwo: $('#filterTwo').val() || null
+    };
+    LoadGrid(filters);
+}
+
+function ClearFilters() {
+    $('.filter-select').val(null).trigger('change');
+    LoadGrid();
+}
+
+─────────────────────────────────────────
+OPEN ADD MODAL
+─────────────────────────────────────────
+function OpenAddModal() {
+    ResetForm();
+    $('#modalTitleText').text('Add New');
+    $('#myModal').modal('show');
+}
+
+─────────────────────────────────────────
+EDIT RECORD
+─────────────────────────────────────────
+function EditRecord(id) {
+    ShowLoader(true);
+    $.get('/Controller/GetById', { id: id }, function (res) {
+        ShowLoader(false);
+        if (!res.success) { ShowToast(res.message, 'error'); return; }
+        var d = res.data;
+        ResetForm();
+        $('#modalTitleText').text('Edit Record');
+
+        // Set simple fields
+        $('#recordId').val(d.recordId);
+        $('#fieldOne').val(d.fieldOne);
+
+        // For cascading dropdown — load children first, then set value,
+        // then trigger change so auto-fill fires, with fallback
+        LoadChildByParent(d.parentId, '#childId');
+        setTimeout(function () {
+            SetSelect2('#parentId', d.parentId);
+            SetSelect2('#childId', d.childId);
+            $('#childId').trigger('change');  // fires auto-fill via change event
+            // Fallback in case data-* not yet on option
+            if (!$('#autoFilledField').val()) {
+                $('#autoFilledField').val(d.autoFilledValue);
+            }
+        }, 450);
+
+        $('#myModal').modal('show');
+    }).fail(function () {
+        ShowLoader(false);
+        ShowToast('Failed to fetch record.', 'error');
+    });
+}
+
+─────────────────────────────────────────
+SAVE (INSERT / UPDATE)
+─────────────────────────────────────────
+function SaveRecord() {
+    if (!ValidateForm()) return;
+
+    var payload = {
+        recordId:   parseInt($('#recordId').val()) || 0,
+        fieldOne:   $('#fieldOne').val().trim(),
+        fieldTwo:   $('#fieldTwo').val(),
+        parentId:   parseInt($('#parentId').val()),
+        childId:    parseInt($('#childId').val()),
+        startDate:  $('#startDate').val(),
+        endDate:    $('#endDate').val()
+    };
+
+    ShowLoader(true);
+    $.ajax({
+        url: '/Controller/Save',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(payload),
+        headers: { 'RequestVerificationToken': csrfToken },
+        success: function (res) {
+            ShowLoader(false);
+            if (res.success) {
+                $('#myModal').modal('hide');
+                ShowToast(res.message, 'success');
+                LoadGrid();
+            } else {
+                ShowToast(res.message, 'error');
+            }
+        },
+        error: function () {
+            ShowLoader(false);
+            ShowToast('An unexpected error occurred.', 'error');
+        }
+    });
+}
+
+─────────────────────────────────────────
+DELETE
+─────────────────────────────────────────
+function DeleteRecord(id) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: 'This record will be deleted.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete it!'
+    }).then(function (result) {
+        if (result.isConfirmed) {
+            ShowLoader(true);
+            $.ajax({
+                url: '/Controller/Delete',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(id),
+                headers: { 'RequestVerificationToken': csrfToken },
+                success: function (res) {
+                    ShowLoader(false);
+                    ShowToast(res.message, res.success ? 'success' : 'error');
+                    if (res.success) LoadGrid();
+                },
+                error: function () {
+                    ShowLoader(false);
+                    ShowToast('Delete failed.', 'error');
+                }
+            });
+        }
+    });
+}
+
+─────────────────────────────────────────
+EXPORT TO EXCEL
+─────────────────────────────────────────
+function ExportToExcel() {
+    var params = new URLSearchParams({
+        filterOne: $('#filterOne').val() || '',
+        filterTwo: $('#filterTwo').val() || ''
+    });
+    window.location.href = '/Controller/ExportExcel?' + params.toString();
+}
+
+─────────────────────────────────────────
+FORM VALIDATION
+─────────────────────────────────────────
+function ValidateForm() {
+    var msg = [];
+    if (!$('#fieldOne').val().trim()) msg.push('Field One is required.');
+    if (!$('#parentId').val())        msg.push('Parent is required.');
+    if (!$('#childId').val())         msg.push('Child is required.');
+    if (!$('#startDate').val())       msg.push('Start Date is required.');
+    if (!$('#endDate').val())         msg.push('End Date is required.');
+
+    if ($('#startDate').val() && $('#endDate').val()) {
+        if (new Date($('#endDate').val()) <= new Date($('#startDate').val()))
+            msg.push('End Date must be after Start Date.');
+    }
+
+    if (msg.length > 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Validation Error',
+            html: msg.map(function(m) { return '• ' + m; }).join('<br/>')
+        });
+        return false;
+    }
+    return true;
+}
+
+─────────────────────────────────────────
+RESET FORM
+─────────────────────────────────────────
+function ResetForm() {
+    $('#myForm')[0].reset();
+    $('#recordId').val(0);
+    $('#autoFilledField').val('');  // ALWAYS explicitly clear auto-filled fields
+    $('.select2-modal').val(null).trigger('change');
+    $('.is-invalid').removeClass('is-invalid');
+}
+
+─────────────────────────────────────────
+HELPERS
+─────────────────────────────────────────
+function ShowToast(message, type) {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: type,
+        title: message,
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true
+    });
+}
+
+function ShowLoader(show) {
+    if (show && !$('#globalLoader').length) {
+        $('body').append(
+            '<div id="globalLoader" style="position:fixed;top:0;left:0;' +
+            'width:100%;height:100%;background:rgba(0,0,0,.25);z-index:9999;' +
+            'display:flex;align-items:center;justify-content:center;">' +
+            '<div class="spinner-border text-light" role="status"></div></div>'
+        );
+    }
+    $('#globalLoader').toggle(show);
+}
+
+function FormatDate(dateStr) {
+    if (!dateStr) return '';
+    var d = new Date(dateStr);
+    return String(d.getDate()).padStart(2,'0') + '-' +
+           String(d.getMonth()+1).padStart(2,'0') + '-' +
+           d.getFullYear();
+}
+
+function FormatDateInput(dateStr) {
+    return dateStr ? new Date(dateStr).toISOString().split('T')[0] : '';
+}
+
+function SetSelect2(selector, value) {
+    $(selector).val(value).trigger('change.select2');
+}
+
+═══════════════════════════════════════════
+STEP 5 — FOLDER STRUCTURE
+═══════════════════════════════════════════
+
+Generate ALL folders and files — do not skip any:
+
+MyProject/
+├── Controllers/
+│   └── TableNameController.cs
+├── Models/
+│   └── TableNameModel.cs
+├── ViewModels/
+│   └── TableNameViewModel.cs
+├── Repositories/
+│   └── TableNameRepository.cs
+├── Services/
+│   └── TableNameService.cs
+├── Views/
+│   ├── TableName/
+│   │   ├── Index.cshtml
+│   │   └── _FormModal.cshtml
+│   └── Shared/
+│       └── _Layout.cshtml
+├── wwwroot/
+│   └── js/
+│       └── tablename.js
+├── Database/
+│   ├── 01_CreateTables.sql
+│   ├── 02_StoredProcedures.sql
+│   └── 03_SeedData.sql
+├── Program.cs
+├── appsettings.json
+└── MyProject.csproj
+
+═══════════════════════════════════════════
+CODING STANDARDS
+═══════════════════════════════════════════
+
+C# Standards:
+- Use async/await throughout (async Task<IActionResult>)
+- Use ILogger<T> for logging — inject via constructor
+- Use try-catch in all controller actions
+- Never expose raw exception messages to the UI
+- Use appsettings.json for connection strings — never hardcode
+- Use [FromBody] for JSON POST payloads
+- Use [ValidateAntiForgeryToken] on all POST actions
+- Register antiforgery header: options.HeaderName = "RequestVerificationToken"
+
+SQL Standards:
+- Always use NVARCHAR (not VARCHAR) for text columns
+- Use GETDATE() for datetime defaults
+- Never use SELECT * in stored procedures
+- Always SET NOCOUNT ON at top of every SP
+- Use WITH (NOLOCK) on all SELECT queries
+- Use proper indexes on FK and search columns
+- Soft delete only (IS_DELETED = 1) — never hard delete
+
+jQuery / JS Standards:
+- No inline JavaScript in Razor views — only data passing via <script>var x=...;</script>
+- All logic in external .js files in wwwroot/js/
+- Use $(document).on('change', ...) for dynamic elements (event delegation)
+- Always ShowLoader(true) before AJAX, ShowLoader(false) in both success AND error
+- Always handle both success and error/fail callbacks
+- Send CSRF token in every POST AJAX header
+- Use SweetAlert2 for all confirmations and toasts — never browser alert() or confirm()
+- Use data-* attributes on option elements to carry extra data for auto-fill
+- NEVER subclass SelectListItem
+
+Security:
+- Validate all inputs server-side
+- Parameterized queries only — never string concatenation in SQL
+- [ValidateAntiForgeryToken] on every POST action
+- Sanitize output to prevent XSS
+
+═══════════════════════════════════════════
+COMMON MISTAKES — NEVER DO THESE
+═══════════════════════════════════════════
+
+MISTAKE 1 — Missing [ValidateNever] on display fields
+BAD:  public string PlantName { get; set; }
+      → causes "The PlantName field is required" error on Save
+GOOD: [ValidateNever] public string PlantName { get; set; }
+
+MISTAKE 2 — Subclassing SelectListItem
+BAD:  public class PlantItem : SelectListItem { public string Country { get; set; } }
+      → causes "Cannot convert List<PlantItem> to List<SelectListItem>"
+GOOD: Use Dictionary<string, string> for extra data per item
+
+MISTAKE 3 — Cascading endpoint not returning extra fields
+BAD:  return Json(list.Select(x => new { value = x.Value, text = x.Text }));
+GOOD: return Json(list.Select(x => new { value = x.Value, text = x.Text, country = x.Country }));
+
+MISTAKE 4 — Auto-fill not triggered in Edit mode
+BAD:  SetSelect2('#plantId', d.plantId);
+GOOD: LoadChildByParent(d.groupCompanyId, '#plantId');
+      setTimeout(function() {
+          SetSelect2('#plantId', d.plantId);
+          $('#plantId').trigger('change');
+          if (!$('#plantCountry').val()) $('#plantCountry').val(d.plantCountry);
+      }, 450);
+
+MISTAKE 5 — Select2 z-index issue inside modal
+BAD:  $('.select2-modal').select2({ placeholder: 'Select' });
+GOOD: $('.select2-modal').select2({ dropdownParent: $('#myModal'), placeholder: 'Select' });
+
+MISTAKE 6 — Auto-filled field not cleared on ResetForm
+BAD:  function ResetForm() { $('#form')[0].reset(); }
+GOOD: function ResetForm() {
+          $('#form')[0].reset();
+          $('#plantCountry').val('');   // explicitly clear every auto-filled field
+          $('.select2-modal').val(null).trigger('change');
+      }
+
+═══════════════════════════════════════════
+OUTPUT FORMAT
+═══════════════════════════════════════════
+
+For each file output in this exact format:
+
+📄 FILE: Controllers/TableNameController.cs
+─────────────────────────────────────────────
+[full code here]
+
+📄 FILE: Database/01_CreateTables.sql
+─────────────────────────────────────────────
+[full code here]
+
+Generate ALL files listed in the folder structure.
+Do not skip any file. Do not summarize — write full code.
+
+After all files provide:
+
+✅ SETUP INSTRUCTIONS
+Step 1: Update appsettings.json with your SQL Server connection string
+Step 2: Run SQL scripts in order: 01_CreateTables → 02_StoredProcedures → 03_SeedData
+Step 3: Run: dotnet restore
+Step 4: Run: dotnet run
+Step 5: Navigate to https://localhost:PORT/TableName
+
+═══════════════════════════════════════════
+NOW — HERE IS MY SCREEN LAYOUT:
+═══════════════════════════════════════════
+
+[PASTE YOUR EXCEL LAYOUT DESCRIPTION HERE]
+OR
+[ATTACH YOUR EXCEL FILE / SCREENSHOT HERE]
+
+Additional context:
+- Screen Name:
+- Module:
+- Primary Table Name:
+- Related / Lookup Tables:
+- Grid Columns to show:
+- Mandatory Fields:
+- Auto-filled Fields (field → filled from):
+- Cascading Dropdowns (parent → child):
+- Special Business Rules:
+- SQL Server Version:
+- .NET Version:
+
+Based on the layout above, generate all code
+following every instruction above.
