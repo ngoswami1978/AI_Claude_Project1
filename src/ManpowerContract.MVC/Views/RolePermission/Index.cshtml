@@ -1,0 +1,123 @@
+@using ManpowerContract.Application.DTOs.Common
+@{
+    ViewData["Title"] = "Permission Management";
+    var roles = ViewBag.Roles as List<DropdownDto> ?? new List<DropdownDto>();
+    var users = ViewBag.Users as List<DropdownDto> ?? new List<DropdownDto>();
+}
+
+<!-- Role Selection -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Select Role</label>
+                <select class="form-select" id="ddlRole">
+                    <option value="">-- Select Role --</option>
+                    @foreach (var r in roles)
+                    {
+                        <option value="@r.Value">@r.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-8 d-flex gap-2 align-items-end">
+                <button class="btn btn-primary" onclick="loadPermissions()"><i class="fas fa-search me-1"></i>Load Permissions</button>
+                <button class="btn btn-outline-secondary" onclick="openCopyFromRoleModal()"><i class="fas fa-copy me-1"></i>Copy from Role</button>
+                <button class="btn btn-outline-secondary" onclick="openCopyFromUserModal()"><i class="fas fa-user-friends me-1"></i>Copy from User</button>
+                <button class="btn btn-primary ms-auto" id="btnSavePerms" onclick="savePermissions()" disabled>
+                    <i class="fas fa-save me-1"></i>Save Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Permission Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table" id="tblPermissions">
+                <thead>
+                    <tr>
+                        <th style="min-width:250px;">Module</th>
+                        <th class="text-center" width="100">Create</th>
+                        <th class="text-center" width="100">Disable</th>
+                        <th class="text-center" width="100">View</th>
+                        <th class="text-center" width="100">Update</th>
+                        <th class="text-center" width="100">Download</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyPermissions">
+                    <tr><td colspan="6" class="text-center text-muted py-4">Select a role and click "Load Permissions"</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Copy From Role Modal -->
+<div class="modal fade" id="copyRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-copy me-2"></i>Copy Permissions from Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Copy all permissions from another role into the currently selected role. This will overwrite existing permissions.</p>
+                <div class="mb-3">
+                    <label class="form-label">Source Role <span class="text-danger">*</span></label>
+                    <select class="form-select" id="ddlSourceRole">
+                        <option value="">-- Select Source Role --</option>
+                        @foreach (var r in roles)
+                        {
+                            <option value="@r.Value">@r.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="copyFromRole()">
+                    <i class="fas fa-copy me-1"></i>Copy Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Copy From User Modal -->
+<div class="modal fade" id="copyUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-friends me-2"></i>Copy Permissions from User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-3">Copy permissions from a user's assigned role into the currently selected role. This will overwrite existing permissions.</p>
+                <div class="mb-3">
+                    <label class="form-label">Source User <span class="text-danger">*</span></label>
+                    <select class="form-select" id="ddlSourceUser">
+                        <option value="">-- Select Source User --</option>
+                        @foreach (var u in users)
+                        {
+                            <option value="@u.Value">@u.Text</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="copyFromUser()">
+                    <i class="fas fa-copy me-1"></i>Copy Permissions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+    <script src="~/js/role-permission.js" asp-append-version="true"></script>
+}

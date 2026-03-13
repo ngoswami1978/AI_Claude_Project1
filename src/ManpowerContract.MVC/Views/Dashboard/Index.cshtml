@@ -1,0 +1,65 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="stat-icon" style="background: rgba(0,150,136,0.1); color: var(--secondary);">
+                    <i class="fas fa-users"></i>
+                </div>
+            </div>
+            <div class="stat-value" id="totalUsers">--</div>
+            <div class="stat-label">Total Users</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="stat-icon" style="background: rgba(204,41,54,0.1); color: var(--primary);">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+            </div>
+            <div class="stat-value" id="totalRoles">--</div>
+            <div class="stat-label">Active Roles</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="stat-icon" style="background: rgba(59,130,246,0.1); color: #3b82f6;">
+                    <i class="fas fa-building"></i>
+                </div>
+            </div>
+            <div class="stat-value" id="totalDepts">--</div>
+            <div class="stat-label">Departments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div class="stat-icon" style="background: rgba(245,158,11,0.1); color: #f59e0b;">
+                    <i class="fas fa-cubes"></i>
+                </div>
+            </div>
+            <div class="stat-value" id="totalModules">--</div>
+            <div class="stat-label">Modules</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="fas fa-chart-line me-2"></i>Welcome to Manpower Contract Management</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-0">
+                    Welcome back, <strong>@ViewBag.FullName</strong>! Use the sidebar navigation to manage users, roles, and permissions.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

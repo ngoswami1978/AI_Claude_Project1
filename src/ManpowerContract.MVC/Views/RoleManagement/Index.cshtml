@@ -1,0 +1,93 @@
+@{
+    ViewData["Title"] = "Role Management";
+}
+
+<!-- Search Bar -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" id="txtSearch" placeholder="Role name..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="ddlStatusFilter">
+                    <option value="">All</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-6 d-flex gap-2 align-items-end">
+                <button class="btn btn-primary" onclick="searchRoles()"><i class="fas fa-search me-1"></i>Search</button>
+                <button class="btn btn-outline-secondary" onclick="clearFilters()"><i class="fas fa-undo me-1"></i>Reset</button>
+                <button class="btn btn-primary ms-auto" onclick="openCreateModal()"><i class="fas fa-plus me-1"></i>Add Role</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table" id="tblRoles">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Role Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th width="100">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyRoles">
+                    <tr><td colspan="5" class="text-center text-muted py-4">Click search to load roles</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="roleModalTitle">Add Role</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnRoleId" />
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Role Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtRoleName" maxlength="100" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="txtDescription" rows="3" maxlength="500"></textarea>
+                    </div>
+                    <div class="col-12" id="statusGroup" style="display:none;">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="chkActive" checked />
+                            <label class="form-check-label" for="chkActive">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveRole()">
+                    <i class="fas fa-save me-1"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+    <script src="~/js/role-management.js" asp-append-version="true"></script>
+}

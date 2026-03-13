@@ -1,0 +1,124 @@
+@{
+    var fullName = Context.Session.GetString("FullName") ?? "User";
+    var roleName = Context.Session.GetString("RoleName") ?? "";
+    var permissions = (Context.Session.GetString("Permissions") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries);
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Manpower Contract Management</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/theme.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="fas fa-users-cog"></i>
+                <span>MCM System</span>
+            </div>
+            <button class="sidebar-toggle d-lg-none" id="sidebarClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <nav class="sidebar-nav">
+            <ul class="nav-list">
+                <li class="nav-item @(currentController == "Dashboard" ? "active" : "")">
+                    <a href="@Url.Action("Index", "Dashboard")">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                @if (permissions.Any(p => p.StartsWith("USER_MGMT", StringComparison.OrdinalIgnoreCase)))
+                {
+                    <li class="nav-item @(currentController == "UserManagement" ? "active" : "")">
+                        <a href="@Url.Action("Index", "UserManagement")">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                }
+
+                @if (permissions.Any(p => p.StartsWith("ROLE_MGMT", StringComparison.OrdinalIgnoreCase)))
+                {
+                    <li class="nav-item @(currentController == "RoleManagement" ? "active" : "")">
+                        <a href="@Url.Action("Index", "RoleManagement")">
+                            <i class="fas fa-user-shield"></i>
+                            <span>Role Management</span>
+                        </a>
+                    </li>
+                }
+
+                @if (permissions.Any(p => p.StartsWith("PERM_MGMT", StringComparison.OrdinalIgnoreCase)))
+                {
+                    <li class="nav-item @(currentController == "RolePermission" ? "active" : "")">
+                        <a href="@Url.Action("Index", "RolePermission")">
+                            <i class="fas fa-key"></i>
+                            <span>Permission Management</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar">
+                    @fullName.Substring(0, 1).ToUpper()
+                </div>
+                <div class="user-details">
+                    <span class="user-name">@fullName</span>
+                    <span class="user-role">@roleName</span>
+                </div>
+            </div>
+            <a href="@Url.Action("Logout", "Account")" class="btn-logout" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <button class="sidebar-toggle d-lg-none" id="sidebarOpen">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">@(ViewData["Title"] ?? "Dashboard")</h1>
+            <div class="navbar-right">
+                <div class="dropdown">
+                    <button class="btn-user-menu dropdown-toggle" data-bs-toggle="dropdown">
+                        <span class="user-avatar-sm">@fullName.Substring(0, 1).ToUpper()</span>
+                        <span class="d-none d-md-inline">@fullName</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text text-muted small">@roleName</span></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><a class="dropdown-item" href="@Url.Action("Logout", "Account")"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="content-wrapper">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

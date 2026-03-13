@@ -1,0 +1,151 @@
+@using ManpowerContract.Application.DTOs.Common
+@{
+    ViewData["Title"] = "User Management";
+    var roles = ViewBag.Roles as List<DropdownDto> ?? new List<DropdownDto>();
+    var departments = ViewBag.Departments as List<DropdownDto> ?? new List<DropdownDto>();
+}
+
+<!-- Search Bar -->
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" id="txtSearch" placeholder="Name or email..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Role</label>
+                <select class="form-select" id="ddlRoleFilter">
+                    <option value="">All Roles</option>
+                    @foreach (var r in roles)
+                    {
+                        <option value="@r.Value">@r.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Department</label>
+                <select class="form-select" id="ddlDeptFilter">
+                    <option value="">All Departments</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.Value">@d.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="ddlStatusFilter">
+                    <option value="">All</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button class="btn btn-primary" onclick="searchUsers()"><i class="fas fa-search me-1"></i>Search</button>
+                <button class="btn btn-outline-secondary" onclick="clearFilters()"><i class="fas fa-undo me-1"></i>Reset</button>
+                <button class="btn btn-primary ms-auto" onclick="openCreateModal()"><i class="fas fa-plus me-1"></i>Add User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table" id="tblUsers">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th width="100">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyUsers">
+                    <tr><td colspan="7" class="text-center text-muted py-4">Click search to load users</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">Add User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnUserId" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="txtFullName" maxlength="200" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control" id="txtEmail" maxlength="200" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Role <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ddlRole">
+                            <option value="">-- Select Role --</option>
+                            @foreach (var r in roles)
+                            {
+                                <option value="@r.Value">@r.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Department <span class="text-danger">*</span></label>
+                        <select class="form-select" id="ddlDept">
+                            <option value="">-- Select Department --</option>
+                            @foreach (var d in departments)
+                            {
+                                <option value="@d.Value">@d.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6" id="passwordGroup">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" class="form-control" id="txtPassword" maxlength="100" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Mobile</label>
+                        <input type="text" class="form-control" id="txtMobile" maxlength="20" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Employee Code</label>
+                        <input type="text" class="form-control" id="txtEmpCode" maxlength="50" />
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end" id="statusGroup" style="display:none !important;">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="chkActive" checked />
+                            <label class="form-check-label" for="chkActive">Active</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveUser" onclick="saveUser()">
+                    <i class="fas fa-save me-1"></i>Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+@section Scripts {
+    <script src="~/js/user-management.js" asp-append-version="true"></script>
+}
