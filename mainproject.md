@@ -723,7 +723,7 @@ app.UseAuthorization();
 LAYOUT (Extracted from Manpower Contract Management Login Screenshot):
 - Full-page split layout (no navbar/sidebar — standalone page)
 - LEFT PANEL (40%):
-    - Background: Solid crimson red (#CC2936)
+    - Background: Solid crimson red (#db2128)
     - Gold accent vertical bar (#FFB300) next to title
     - Title: "Manpower Contract Management" (white text, bold, 28px)
     - No illustration — clean solid color
@@ -736,13 +736,13 @@ LAYOUT (Extracted from Manpower Contract Management Login Screenshot):
     - Password input (lock icon + eye toggle for show/hide)
     - "Remember Me" checkbox + "Forgot Password?" link (teal #009688)
     - LOGIN button (full-width, teal #009688, white text, 600 weight, uppercase)
-    - Footer tagline: "Proud to be the part of." (crimson red text #CC2936)
+    - Footer tagline: "Proud to be the part of." (crimson red text #db2128)
 - RESPONSIVE: Left panel hidden on mobile (< 768px)
 
 CSS ROOT VARIABLES (EXTRACTED — apply to entire project):
 :root {
     /* ═══ PRIMARY BRAND — Crimson Red ═══ */
-    --primary-color:          #CC2936;   /* Brand red — left panel, accents */
+    --primary-color:          #db2128;   /* Brand red — left panel, accents */
     --primary-dark:           #A31D28;   /* Darker red — hover states */
     --primary-light:          #E8434F;   /* Lighter red — highlights */
 
@@ -755,10 +755,10 @@ CSS ROOT VARIABLES (EXTRACTED — apply to entire project):
     --accent-gold:            #FFB300;   /* Gold accent bar next to title */
 
     /* ═══ LAYOUT ═══ */
-    --login-left-bg:          #CC2936;   /* Solid crimson red left panel */
+    --login-left-bg:          #db2128;   /* Solid crimson red left panel */
     --sidebar-bg:             #1A1A2E;   /* Dark charcoal sidebar */
     --sidebar-hover:          #2A2A42;   /* Sidebar item hover */
-    --sidebar-active:         #CC2936;   /* Active item — red highlight */
+    --sidebar-active:         #db2128;   /* Active item — red highlight */
     --navbar-bg:              #FFFFFF;   /* White top navbar */
     --navbar-border:          #E0E0E0;   /* Navbar bottom border */
     --page-bg:                #F0F2F5;   /* Light gray page bg */
@@ -770,10 +770,10 @@ CSS ROOT VARIABLES (EXTRACTED — apply to entire project):
     --text-primary:           #212529;   /* Body text */
     --text-secondary:         #6C757D;   /* Muted text */
     --text-heading:           #212529;   /* Headings */
-    --text-brand-red:         #CC2936;   /* Red branded text */
+    --text-brand-red:         #db2128;   /* Red branded text */
 
     /* ═══ TABLE ═══ */
-    --table-header-bg:        #CC2936;   /* Crimson red header */
+    --table-header-bg:        #db2128;   /* Crimson red header */
     --table-header-text:      #FFFFFF;   /* White header text */
     --table-row-hover:        #FFF3F4;   /* Light pink hover */
 
@@ -786,12 +786,12 @@ CSS ROOT VARIABLES (EXTRACTED — apply to entire project):
     /* ═══ BUTTONS ═══ */
     --btn-primary-bg:         #009688;   /* Teal — Login, Save, Submit */
     --btn-primary-hover:      #00796B;   /* Dark teal hover */
-    --btn-secondary-bg:       #CC2936;   /* Red — branded secondary */
+    --btn-secondary-bg:       #db2128;   /* Red — branded secondary */
     --btn-outline-color:      #009688;   /* Teal outline */
     --btn-danger-bg:          #DC3545;   /* Red — delete */
 
     /* ═══ MODAL ═══ */
-    --modal-header-bg:        #CC2936;   /* Red modal header */
+    --modal-header-bg:        #db2128;   /* Red modal header */
     --modal-header-text:      #FFFFFF;
 
     /* ═══ DECORATIVE ═══ */

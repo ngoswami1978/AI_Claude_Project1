@@ -72,7 +72,7 @@ Step 5:  Default Login Credentials:
 ## 🎨 Theme / Color — EXTRACTED FROM ACTUAL LOGIN SCREENSHOT
 
 > ✅ Colors extracted from the **Manpower Contract Management** login page.
-> Theme: **Crimson Red (Brand) + Teal Green (CTA)** on White
+> Theme: **Brand Red (Brand) + Teal Green (CTA)** on White
 > Applied to: Login page, Navbar, Sidebar, Buttons, Table headers, Modals.
 
 ---
@@ -85,8 +85,8 @@ Step 5:  Default Login Credentials:
 │  ┌──────────────────────────┬──────────────────────────────────────┐    │
 │  │                          │           ◯ (gray decorative circle)│    │
 │  │   LEFT PANEL             │                                     │    │
-│  │   (Solid Crimson Red)    │   "Manpower Contract Management"    │    │
-│  │   Background: #CC2936    │    (dark heading, bold)             │    │
+│  │   (Solid Brand Red)    │   "Manpower Contract Management"    │    │
+│  │   Background: #db2128    │    (dark heading, bold)             │    │
 │  │                          │                                     │    │
 │  │                          │   Language: [English (United States)]│    │
 │  │   ┌─ Gold accent bar     │            (dropdown)               │    │
@@ -109,7 +109,7 @@ Step 5:  Default Login Credentials:
 │  │                          │   └─────────────────────────────┘   │    │
 │  │                          │                                     │    │
 │  │                          │   "Proud to be the part of."       │    │
-│  │                          │   (Crimson red text: #CC2936)      │    │
+│  │                          │   (Crimson red text: #db2128)      │    │
 │  │                          │           ◯ (gray decorative circle)│    │
 │  └──────────────────────────┴──────────────────────────────────────┘    │
 │                                                                         │
@@ -123,8 +123,8 @@ Step 5:  Default Login Credentials:
 ```css
 /* wwwroot/css/theme.css — Manpower Contract Management Colors */
 :root {
-  /* ═══ PRIMARY BRAND — Crimson Red ═══ */
-  --primary-color:          #CC2936;   /* Brand red — left panel, accents */
+  /* ═══ PRIMARY BRAND — Brand Red ═══ */
+  --primary-color:          #db2128;   /* Brand red — left panel, accents */
   --primary-dark:           #A31D28;   /* Darker red — hover states */
   --primary-light:          #E8434F;   /* Lighter red — highlights */
 
@@ -138,10 +138,10 @@ Step 5:  Default Login Credentials:
   --accent-gold-light:      #FFD54F;   /* Light gold — badges */
 
   /* ═══ BACKGROUNDS ═══ */
-  --login-left-bg:          #CC2936;   /* Solid crimson red */
+  --login-left-bg:          #db2128;   /* Solid crimson red */
   --sidebar-bg:             #1A1A2E;   /* Dark sidebar (navy/charcoal) */
   --sidebar-hover:          #2A2A42;   /* Sidebar item hover */
-  --sidebar-active:         #CC2936;   /* Active item — brand red highlight */
+  --sidebar-active:         #db2128;   /* Active item — brand red highlight */
   --navbar-bg:              #FFFFFF;   /* White top navbar */
   --navbar-border:          #E0E0E0;   /* Bottom border line */
   --page-bg:                #F0F2F5;   /* Light gray page background */
@@ -153,16 +153,16 @@ Step 5:  Default Login Credentials:
   --text-primary:           #212529;   /* Main body text */
   --text-secondary:         #6C757D;   /* Secondary/muted text */
   --text-heading:           #212529;   /* Headings — dark */
-  --text-brand-red:         #CC2936;   /* Red branded text (footer tagline) */
+  --text-brand-red:         #db2128;   /* Red branded text (footer tagline) */
 
   /* ═══ TABLE / GRID ═══ */
-  --table-header-bg:        #CC2936;   /* Crimson red header */
+  --table-header-bg:        #db2128;   /* Crimson red header */
   --table-header-text:      #FFFFFF;   /* White header text */
   --table-row-hover:        #FFF3F4;   /* Very light pink hover */
   --table-border:           #DEE2E6;   /* Light gray borders */
 
   /* ═══ MODAL ═══ */
-  --modal-header-bg:        #CC2936;   /* Red modal header */
+  --modal-header-bg:        #db2128;   /* Red modal header */
   --modal-header-text:      #FFFFFF;   /* White modal title */
 
   /* ═══ FORM ELEMENTS ═══ */
@@ -177,7 +177,7 @@ Step 5:  Default Login Credentials:
   --btn-primary-bg:         #009688;   /* Teal — Login, Save, Submit */
   --btn-primary-text:       #FFFFFF;
   --btn-primary-hover:      #00796B;   /* Dark teal hover */
-  --btn-secondary-bg:       #CC2936;   /* Red — branded secondary */
+  --btn-secondary-bg:       #db2128;   /* Red — branded secondary */
   --btn-secondary-text:     #FFFFFF;
   --btn-outline-color:      #009688;   /* Teal outline buttons */
   --btn-danger-bg:          #DC3545;   /* Red — delete */
@@ -200,25 +200,25 @@ Step 5:  Default Login Credentials:
 
 | UI Element | Color Variable | Hex Value | Visual |
 |---|---|---|---|
-| **Login left panel** | `--login-left-bg` | `#CC2936` | 🟥 Solid crimson red |
+| **Login left panel** | `--login-left-bg` | `#db2128` | 🟥 Solid crimson red |
 | **Login left panel text** | `--text-on-dark` | `#FFFFFF` | ⬜ White on red |
 | **Gold accent bar** | `--accent-gold` | `#FFB300` | 🟨 Gold vertical bar |
 | **Login right panel** | `--card-bg` | `#FFFFFF` | ⬜ White |
 | **Login button** | `--btn-primary-bg` | `#009688` | 🟩 Teal green |
 | **Forgot Password link** | `--teal-color` | `#009688` | 🟩 Teal text |
 | **Input focus background** | `--input-focus-bg` | `#E3F2FD` | 🔵 Light blue tint |
-| **Footer tagline** | `--text-brand-red` | `#CC2936` | 🟥 "Proud to be..." |
+| **Footer tagline** | `--text-brand-red` | `#db2128` | 🟥 "Proud to be..." |
 | **Decorative circles** | `--circle-decoration` | `#F0F0F0` | ⚪ Light gray |
 | **Sidebar background** | `--sidebar-bg` | `#1A1A2E` | ⚫ Dark charcoal |
-| **Sidebar active item** | `--sidebar-active` | `#CC2936` | 🟥 Red highlight |
+| **Sidebar active item** | `--sidebar-active` | `#db2128` | 🟥 Red highlight |
 | **Top Navbar** | `--navbar-bg` | `#FFFFFF` | ⬜ White (with border) |
 | **Page background** | `--page-bg` | `#F0F2F5` | ⬜ Light gray |
-| **Table header** | `--table-header-bg` | `#CC2936` | 🟥 Crimson red |
+| **Table header** | `--table-header-bg` | `#db2128` | 🟥 Crimson red |
 | **Table header text** | `--table-header-text` | `#FFFFFF` | ⬜ White |
 | **Table row hover** | `--table-row-hover` | `#FFF3F4` | 🩷 Light pink |
-| **Modal header** | `--modal-header-bg` | `#CC2936` | 🟥 Crimson red |
+| **Modal header** | `--modal-header-bg` | `#db2128` | 🟥 Crimson red |
 | **Save/Submit buttons** | `--btn-primary-bg` | `#009688` | 🟩 Teal |
-| **Branded buttons** | `--btn-secondary-bg` | `#CC2936` | 🟥 Red |
+| **Branded buttons** | `--btn-secondary-bg` | `#db2128` | 🟥 Red |
 | **Delete buttons** | `--btn-danger-bg` | `#DC3545` | 🟥 Standard red |
 | **Input focus border** | `--input-focus-border` | `#009688` | 🟩 Teal |
 | **Headings** | `--text-heading` | `#212529` | ⚫ Dark |
@@ -230,7 +230,7 @@ Step 5:  Default Login Credentials:
 ### 🖼️ Login Page CSS (Generated from Actual Screenshot)
 
 ```css
-/* Login Page — Crimson Red + Teal Theme */
+/* Login Page — Brand Red + Teal Theme */
 .login-wrapper {
     min-height: 100vh;
     display: flex;
@@ -238,7 +238,7 @@ Step 5:  Default Login Credentials:
     background: var(--card-bg);
 }
 
-/* ── LEFT PANEL: Solid Crimson Red ── */
+/* ── LEFT PANEL: Solid Brand Red ── */
 .login-left-panel {
     flex: 0 0 40%;
     background: var(--login-left-bg);
@@ -451,7 +451,7 @@ Step 5:  Default Login Credentials:
 
 .sidebar .nav-link.active {
     background: rgba(204,41,54,0.15);        /* Red tint background */
-    color: var(--primary-color);             /* #CC2936 red text */
+    color: var(--primary-color);             /* #db2128 red text */
     border-left-color: var(--primary-color); /* Red left border */
     font-weight: 600;
 }
@@ -525,9 +525,9 @@ Step 5:  Default Login Credentials:
 ### 📊 DataTable Header Override
 
 ```css
-/* Grid / DataTable — Crimson Red Header */
+/* Grid / DataTable — Brand Red Header */
 #gridTable thead th {
-    background-color: var(--table-header-bg) !important;  /* #CC2936 */
+    background-color: var(--table-header-bg) !important;  /* #db2128 */
     color: var(--table-header-text) !important;            /* White */
     font-weight: 600;
     font-size: 13px;
@@ -562,7 +562,7 @@ Step 5:  Default Login Credentials:
 
 /* Branded secondary (RED) */
 .btn-brand-secondary {
-    background: var(--btn-secondary-bg);     /* #CC2936 red */
+    background: var(--btn-secondary-bg);     /* #db2128 red */
     color: var(--btn-secondary-text);
     border: none;
     border-radius: 6px;

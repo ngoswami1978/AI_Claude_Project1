@@ -442,7 +442,7 @@ TRN_AUDIT_LOG     (LogId, UserId, Module, Action, Description,
 ### Company Theme Colors (Extracted from Manpower Contract Login Screenshot)
 ```css
 /* ═══ PRIMARY BRAND — Crimson Red ═══ */
---primary-color:          #CC2936;   /* Brand red — left panel, accents, table headers */
+--primary-color:          #db2128;   /* Brand red — left panel, accents, table headers */
 --primary-dark:           #A31D28;   /* Darker red — hover states */
 --primary-light:          #E8434F;   /* Lighter red — highlights */
 
@@ -456,10 +456,10 @@ TRN_AUDIT_LOG     (LogId, UserId, Module, Action, Description,
 --accent-gold-light:      #FFD54F;   /* Light gold — badges */
 
 /* ═══ LAYOUT ═══ */
---login-left-bg:          #CC2936;   /* Solid crimson red left panel */
+--login-left-bg:          #db2128;   /* Solid crimson red left panel */
 --sidebar-bg:             #1A1A2E;   /* Dark charcoal sidebar */
 --sidebar-hover:          #2A2A42;   /* Sidebar item hover */
---sidebar-active:         #CC2936;   /* Active item — brand red highlight */
+--sidebar-active:         #db2128;   /* Active item — brand red highlight */
 --navbar-bg:              #FFFFFF;   /* White top navbar */
 --navbar-border:          #E0E0E0;   /* Navbar bottom border */
 --page-bg:                #F0F2F5;   /* Light gray page bg */
@@ -471,16 +471,16 @@ TRN_AUDIT_LOG     (LogId, UserId, Module, Action, Description,
 --text-primary:           #212529;   /* Body text */
 --text-secondary:         #6C757D;   /* Muted text */
 --text-heading:           #212529;   /* Headings — dark */
---text-brand-red:         #CC2936;   /* Red branded text (footer tagline) */
+--text-brand-red:         #db2128;   /* Red branded text (footer tagline) */
 
 /* ═══ TABLE ═══ */
---table-header-bg:        #CC2936;   /* Crimson red header */
+--table-header-bg:        #db2128;   /* Crimson red header */
 --table-header-text:      #FFFFFF;   /* White header text */
 --table-row-hover:        #FFF3F4;   /* Light pink hover */
 --table-border:           #DEE2E6;   /* Light gray borders */
 
 /* ═══ MODAL ═══ */
---modal-header-bg:        #CC2936;   /* Red modal header */
+--modal-header-bg:        #db2128;   /* Red modal header */
 --modal-header-text:      #FFFFFF;   /* White modal title */
 
 /* ═══ FORM ELEMENTS ═══ */
@@ -493,7 +493,7 @@ TRN_AUDIT_LOG     (LogId, UserId, Module, Action, Description,
 --btn-primary-bg:         #009688;   /* Teal — Login, Save, Submit */
 --btn-primary-text:       #FFFFFF;
 --btn-primary-hover:      #00796B;   /* Dark teal hover */
---btn-secondary-bg:       #CC2936;   /* Red — branded secondary */
+--btn-secondary-bg:       #db2128;   /* Red — branded secondary */
 --btn-secondary-text:     #FFFFFF;
 --btn-outline-color:      #009688;   /* Teal outline buttons */
 --btn-danger-bg:          #DC3545;   /* Red — delete */

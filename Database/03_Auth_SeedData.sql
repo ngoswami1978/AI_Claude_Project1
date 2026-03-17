@@ -52,14 +52,21 @@ END
 GO
 
 -- Admin User (admin@company.com / Admin@123)
--- BCrypt hash for "Admin@123" — generate in app; placeholder below
+-- BCrypt hash verified with BCrypt.Net-Next 4.0.3, workFactor: 12
 IF NOT EXISTS (SELECT 1 FROM MST_USER WHERE EMAIL = 'admin@company.com')
 BEGIN
     INSERT INTO MST_USER (FULL_NAME, EMAIL, PASSWORD_HASH, PASSWORD_SALT, ROLE_ID, DEPARTMENT_ID, IS_ACTIVE)
     VALUES ('System Admin', 'admin@company.com',
-            '$2a$12$LJ3m9bkMJBJRCaFNsV2F..h1yrxYz0tAGDnQnD0vL2nOHJqVKJCGi', -- Admin@123
+            '$2a$12$rzJXGw8FLjqJkwKIQU9gk.W528iHc.TUsMGCL.z6J0Egzj/5FxQGu', -- Admin@123 (verified)
             'BCryptManaged', 1, 1, 1);
 END
+GO
+
+-- If admin user already exists with wrong hash, update it
+UPDATE MST_USER
+SET PASSWORD_HASH = '$2a$12$rzJXGw8FLjqJkwKIQU9gk.W528iHc.TUsMGCL.z6J0Egzj/5FxQGu',
+    PASSWORD_SALT = 'BCryptManaged'
+WHERE EMAIL = 'admin@company.com';
 GO
 
 PRINT '✅ Seed data inserted successfully.';

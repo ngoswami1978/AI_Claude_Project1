@@ -1,11 +1,11 @@
 /* ═══════════════════════════════════════════════════════════════
    Manpower Contract Management - Theme CSS
-   Primary:   Crimson Red  #CC2936
+   Primary:   Crimson Red  #db2128
    Secondary: Teal         #009688
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
-    --primary: #CC2936;
+    --primary: #db2128;
     --primary-dark: #a01f2a;
     --primary-light: #e8535f;
     --secondary: #009688;

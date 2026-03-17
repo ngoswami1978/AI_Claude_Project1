@@ -27,29 +27,47 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(dto);
 
-        var result = await _api.PostAsync<LoginResponseDto>("api/auth/login", dto);
-        if (!result.Success || result.Data == null)
+        try
         {
-            ViewBag.Error = result.Message ?? "Invalid credentials.";
+            var result = await _api.PostAsync<LoginResponseDto>("api/auth/login", dto);
+            if (!result.Success || result.Data == null)
+            {
+                ViewBag.Error = result.Message ?? "Invalid credentials.";
+                return View(dto);
+            }
+
+            var loginResponse = result.Data;
+
+            // Store JWT token in session
+            HttpContext.Session.SetString("JwtToken", loginResponse.Token);
+            HttpContext.Session.SetString("UserId", loginResponse.UserId.ToString());
+            HttpContext.Session.SetString("FullName", loginResponse.FullName);
+            HttpContext.Session.SetString("Email", loginResponse.Email);
+            HttpContext.Session.SetString("RoleName", loginResponse.RoleName);
+
+            // Store permissions as comma-separated for HasPermission filter
+            if (loginResponse.Permissions != null && loginResponse.Permissions.Any())
+            {
+                HttpContext.Session.SetString("Permissions", string.Join(",", loginResponse.Permissions));
+            }
+
+            return RedirectToAction("Index", "Dashboard");
+        }
+        catch (HttpRequestException)
+        {
+            ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
             return View(dto);
         }
-
-        var loginResponse = result.Data;
-
-        // Store JWT token in session
-        HttpContext.Session.SetString("JwtToken", loginResponse.Token);
-        HttpContext.Session.SetString("UserId", loginResponse.UserId.ToString());
-        HttpContext.Session.SetString("FullName", loginResponse.FullName);
-        HttpContext.Session.SetString("Email", loginResponse.Email);
-        HttpContext.Session.SetString("RoleName", loginResponse.RoleName);
-
-        // Store permissions as comma-separated for HasPermission filter
-        if (loginResponse.Permissions != null && loginResponse.Permissions.Any())
+        catch (TaskCanceledException)
         {
-            HttpContext.Session.SetString("Permissions", string.Join(",", loginResponse.Permissions));
+            ViewBag.Error = "The API server did not respond in time. Please try again.";
+            return View(dto);
         }
-
-        return RedirectToAction("Index", "Dashboard");
+        catch (Exception ex)
+        {
+            ViewBag.Error = $"An unexpected error occurred: {ex.Message}";
+            return View(dto);
+        }
     }
 
     [HttpGet]
