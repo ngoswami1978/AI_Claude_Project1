@@ -39,32 +39,33 @@ Step 6: Paste into Claude AI and send
 
 ```
 Step 1:  Run Database Scripts in ORDER:
-         01_CreateTables.sql
-         02_Auth_Tables.sql        ← NEW (Login, Roles, Permissions)
-         03_StoredProcedures.sql
-         04_Auth_StoredProcedures.sql ← NEW
-         05_SeedData.sql
+         01_Auth_Tables.sql           ← Tables (Login, Roles, Permissions)
+         02_Auth_StoredProcedures.sql  ← All stored procedures
+         03_Auth_SeedData.sql          ← Seed data + admin user
 
-Step 2:  Update appsettings.json:
+Step 2:  Update appsettings.json (API project):
          - ConnectionStrings → DefaultConnection
-         - JwtSettings → Secret, Issuer, Audience, ExpiryMinutes
-         - ApiSettings → BaseUrl (your API project URL)
+         - Jwt → Key, Issuer, Audience, ExpiryMinutes
+         - AllowedOrigins (CORS origins for MVC)
 
-Step 3:  Run API Project first:
-         cd MyProject.API
-         dotnet restore
-         dotnet run
-         → Check: https://localhost:PORT/swagger
+Step 3:  Update appsettings.json (MVC project):
+         - ConnectionStrings → DefaultConnection
+         - ApiSettings → BaseUrl (your API project URL, e.g. https://localhost:5001)
 
-Step 4:  Run MVC Project second:
-         cd MyProject.MVC
-         dotnet restore
-         dotnet run
-         → Check: https://localhost:PORT/Login
+Step 4:  Run API Project first:
+         cd ManpowerContract.API
+         dotnet restore && dotnet run
+         → Check: https://localhost:5001/swagger
 
-Step 5:  Default Login Credentials:
+Step 5:  Run MVC Project second:
+         cd ManpowerContract.MVC
+         dotnet restore && dotnet run
+         → Check: http://localhost:5003 (or https://localhost:5002)
+
+Step 6:  Default Login Credentials:
          Username: admin@company.com
          Password: Admin@123
+         (BCrypt hash verified with BCrypt.Net-Next 4.0.3)
 ```
 
 ---
@@ -603,21 +604,26 @@ Step 5:  Default Login Credentials:
 ```
 User visits any page
     ↓
-[Middleware] Checks JWT token in cookie/session
+[AuthenticationFilter] Checks session "JwtToken"
     ↓
-Token valid?  ──YES──→  Allow page, check permissions
+Token in session?  ──YES──→  Allow page, check [HasPermission]
     ↓NO
-Redirect to /Login
+Redirect to /Account/Login
     ↓
-User enters username + password
+User enters email + password
     ↓
-MVC calls → API /api/auth/login
+MVC AccountController calls → API /api/auth/login
     ↓
-API validates → returns JWT token
+API AuthService validates email + BCrypt.Verify password
     ↓
-MVC stores token in HttpOnly Cookie + Session
+API returns JWT token + permissions list
     ↓
-User redirected to Dashboard
+MVC stores token + user info in Session
+   (JwtToken, UserId, FullName, Email, RoleName, Permissions)
+    ↓
+Session cookie: SameAsRequest (works on HTTP and HTTPS)
+    ↓
+User redirected to /Dashboard
 ```
 
 ---
@@ -626,20 +632,23 @@ User redirected to Dashboard
 
 ```
 Each User has ONE Role (e.g. Admin, Manager, Viewer)
-Each Role has MANY Permissions
-Each Permission links to a MODULE + ACTION
+Each Role has MANY Permissions via MST_ROLE_PERMISSION
+Each Permission links to a MODULE + ACTION (Create/View/Update/Disable/Download)
+
+Permission Format: "MODULE_CODE.Action"
+  e.g. USER_MGMT.Create, ROLE_MGMT.View, PERM_MGMT.Update
 
 Example:
   Role: Manager
-    ├── ManpowerContract → View   ✅
-    ├── ManpowerContract → Add    ✅
-    ├── ManpowerContract → Edit   ✅
-    ├── ManpowerContract → Delete ❌
-    └── UserManagement  → View   ❌
+    ├── USER_MGMT.View      ✅
+    ├── USER_MGMT.Create    ✅
+    ├── USER_MGMT.Update    ✅
+    ├── USER_MGMT.Disable   ❌
+    └── ROLE_MGMT.View      ❌
 
-In code — controller checks permission:
-  [HasPermission("ManpowerContract", "Edit")]
-  public async Task<IActionResult> Save(...)
+In code — controller checks permission (single string):
+  [HasPermission("USER_MGMT.Update")]
+  public async Task<IActionResult> Update(...)
 ```
 
 ---
@@ -676,11 +685,14 @@ For each new screen after the project is set up:
 ## ⚠️ Common Mistakes to Avoid
 
 ```
-❌ Running MVC before API is running → Login will fail
-❌ Wrong JWT Secret in appsettings → 401 Unauthorized errors
-❌ Not running Auth SQL scripts → Login table missing
+❌ Running MVC before API is running → Login will fail with "Unable to connect to API"
+❌ Wrong Jwt:Key in appsettings → 401 Unauthorized errors
+❌ Using "JwtSettings" instead of "Jwt" in config → JWT generation null error
+❌ Session SecurePolicy=Always on HTTP → Session cookie not sent, login loop
+❌ Not running Auth SQL scripts → Stored procedures missing
+❌ Using wrong BCrypt hash in seed data → Password verification fails
 ❌ Forgetting to seed admin user → Can't login at all
-❌ Running seed data twice → Duplicate user error (safe — IF NOT EXISTS used)
+❌ Running seed data twice → Safe (uses IF NOT EXISTS + UPDATE fallback)
 ```
 
 ---

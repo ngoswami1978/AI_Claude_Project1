@@ -488,14 +488,14 @@ public class AuthService : IAuthService
             RoleName    = user.RoleName,
             Token       = token,
             Permissions = permissions.ToList(),
-            ExpiryMinutes = int.Parse(_config["JwtSettings:ExpiryMinutes"]!)
+            ExpiryMinutes = int.Parse(_config["Jwt:ExpiryMinutes"]!)
         });
     }
 
     public string GenerateJwtToken(LoginResultModel user, IEnumerable<string> permissions)
     {
         var key   = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(_config["JwtSettings:Secret"]!));
+            Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new List<Claim> {
@@ -508,11 +508,11 @@ public class AuthService : IAuthService
         };
 
         var token = new JwtSecurityToken(
-            issuer:             _config["JwtSettings:Issuer"],
-            audience:           _config["JwtSettings:Audience"],
+            issuer:             _config["Jwt:Issuer"],
+            audience:           _config["Jwt:Audience"],
             claims:             claims,
             expires:            DateTime.UtcNow.AddMinutes(
-                                    double.Parse(_config["JwtSettings:ExpiryMinutes"]!)),
+                                    double.Parse(_config["Jwt:ExpiryMinutes"]!)),
             signingCredentials: creds
         );
 
@@ -687,10 +687,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience         = true,
             ValidateLifetime         = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience            = builder.Configuration["JwtSettings:Audience"],
+            ValidIssuer              = builder.Configuration["Jwt:Issuer"],
+            ValidAudience            = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey         = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]!))
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
         };
     });
 
@@ -808,42 +808,46 @@ public class AccountController : Controller
     [HttpPost]
     public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl)
     {
-        // 1. Call API: POST /api/v1/auth/login
-        var result = await _api.PostAsync<LoginResponseDto>("api/v1/auth/login",
-            new { email = model.Email, password = model.Password });
+        // 1. Call API: POST /api/auth/login (with try-catch for connectivity)
+        try
+        {
+            var result = await _api.PostAsync<LoginResponseDto>("api/auth/login", dto);
+            if (!result.Success || result.Data == null) {
+                ViewBag.Error = result.Message ?? "Invalid credentials.";
+                return View(dto);
+            }
 
-        if (result?.Success != true) {
-            ModelState.AddModelError("", result?.Message ?? "Login failed.");
-            return View(model);
+            // 2. Store JWT + user info in Session
+            var loginResponse = result.Data;
+            HttpContext.Session.SetString("JwtToken", loginResponse.Token);
+            HttpContext.Session.SetString("UserId", loginResponse.UserId.ToString());
+            HttpContext.Session.SetString("FullName", loginResponse.FullName);
+            HttpContext.Session.SetString("Email", loginResponse.Email);
+            HttpContext.Session.SetString("RoleName", loginResponse.RoleName);
+
+            // 3. Permissions as comma-separated "MODULE.Action" strings
+            if (loginResponse.Permissions?.Any() == true)
+                HttpContext.Session.SetString("Permissions",
+                    string.Join(",", loginResponse.Permissions));
+
+            return RedirectToAction("Index", "Dashboard");
         }
-
-        // 2. Store JWT in HttpOnly cookie
-        Response.Cookies.Append(SessionKeys.AuthToken, result.Data!.Token,
-            new CookieOptions {
-                HttpOnly = true,
-                Secure   = true,
-                SameSite = SameSiteMode.Strict,
-                Expires  = DateTimeOffset.UtcNow.AddMinutes(result.Data.ExpiryMinutes)
-            });
-
-        // 3. Store user info in Session
-        HttpContext.Session.SetInt32(SessionKeys.UserId,      result.Data.UserId);
-        HttpContext.Session.SetString(SessionKeys.UserName,   result.Data.FullName);
-        HttpContext.Session.SetString(SessionKeys.Email,      result.Data.Email);
-        HttpContext.Session.SetString(SessionKeys.RoleName,   result.Data.RoleName);
-        HttpContext.Session.SetString(SessionKeys.Permissions,
-            JsonSerializer.Serialize(result.Data.Permissions));
-
-        return Redirect(returnUrl ?? "/Dashboard");
+        catch (HttpRequestException)
+        {
+            ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
+            return View(dto);
+        }
+        catch (TaskCanceledException)
+        {
+            ViewBag.Error = "The API server did not respond in time. Please try again.";
+            return View(dto);
+        }
     }
 
-    [HttpPost]
+    [HttpGet]
     public IActionResult Logout()
     {
-        // Clear session
         HttpContext.Session.Clear();
-        // Expire cookie
-        Response.Cookies.Delete(SessionKeys.AuthToken);
         return RedirectToAction("Login");
     }
 }
@@ -851,76 +855,71 @@ public class AccountController : Controller
 
 ### 6.3 Authentication Filter (applies to ALL MVC controllers)
 ```csharp
+// Registered globally in Program.cs via options.Filters.AddService<AuthenticationFilter>()
+// Skip with [SkipAuthFilter] attribute on controller or action
 public class AuthenticationFilter : IActionFilter
 {
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        // Skip Login page
-        var skipAuth = context.ActionDescriptor.EndpointMetadata
-            .OfType<AllowAnonymousAttribute>().Any();
-        if (skipAuth) return;
+        // Skip if decorated with [SkipAuthFilter]
+        var skip = context.ActionDescriptor.EndpointMetadata
+            .OfType<SkipAuthFilterAttribute>().Any()
+            || context.Controller.GetType()
+                .GetCustomAttributes(typeof(SkipAuthFilterAttribute), true).Any();
+        if (skip) return;
 
-        // Check session
-        var userId = context.HttpContext.Session.GetInt32(SessionKeys.UserId);
-        if (userId == null || userId == 0)
+        // Check JWT token in session
+        var token = context.HttpContext.Session.GetString("JwtToken");
+        if (string.IsNullOrEmpty(token))
         {
-            var returnUrl = context.HttpContext.Request.Path;
-            context.Result = new RedirectResult($"/Login?returnUrl={returnUrl}");
+            context.Result = new RedirectToActionResult("Login", "Account", null);
         }
     }
 
     public void OnActionExecuted(ActionExecutedContext context) { }
 }
+
+// Attribute to skip auth on specific controllers/actions
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public class SkipAuthFilterAttribute : Attribute { }
 ```
 
 ### 6.4 Permission Filter
 ```csharp
+// Usage: [HasPermission("USER_MGMT.Create")] — single string "MODULE.Action"
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public class HasPermissionAttribute : TypeFilterAttribute
+public class HasPermissionAttribute : Attribute, IAuthorizationFilter
 {
-    public HasPermissionAttribute(string module, string action)
-        : base(typeof(PermissionAuthFilter))
-    {
-        Arguments = new object[] { module, action };
-    }
-}
+    private readonly string _permission;
 
-public class PermissionAuthFilter : IAuthorizationFilter
-{
-    private readonly string _module;
-    private readonly string _action;
+    public HasPermissionAttribute(string permission) => _permission = permission;
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        var permsJson = context.HttpContext.Session
-            .GetString(SessionKeys.Permissions);
+        var permissions = context.HttpContext.Session
+            .GetString("Permissions") ?? "";
 
-        if (string.IsNullOrEmpty(permsJson)) {
-            context.Result = new RedirectResult("/Unauthorized");
-            return;
+        if (!permissions.Split(',').Contains(_permission))
+        {
+            context.Result = new RedirectToActionResult(
+                "AccessDenied", "Account", null);
         }
-
-        var perms    = JsonSerializer.Deserialize<List<string>>(permsJson) ?? new();
-        var required = $"{_module}.{_action}";
-
-        if (!perms.Contains(required))
-            context.Result = new RedirectResult("/Unauthorized");
     }
 }
 ```
 
 ### 6.5 ApiClientService (MVC calls API)
 ```csharp
-// Attaches JWT from cookie to every API call
-// GetAsync<T>, PostAsync<T>, PutAsync<T>, DeleteAsync<T>
-// All return ApiResponse<T>
-// Logs errors with ILogger — never exposes to UI
+// Attaches JWT from session to every API call
+// GetAsync<T>, PostAsync<T>, PutAsync<T>, DeleteAsync<T>, GetListAsync<T>
+// All return ApiResponse<T> (using Newtonsoft.Json deserialization)
+// Uses IHttpClientFactory named "ManpowerContractAPI"
 
 private HttpClient CreateClient()
 {
-    var client = _factory.CreateClient("MyProjectAPI");
-    var token  = _httpContextAccessor.HttpContext?
-                     .Request.Cookies[SessionKeys.AuthToken];
+    var client = _httpClientFactory.CreateClient("ManpowerContractAPI");
+    var token = _httpContextAccessor.HttpContext?
+                    .Session.GetString("JwtToken");
     if (!string.IsNullOrEmpty(token))
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
@@ -1015,38 +1014,40 @@ JS:
 
 ### 6.10 MVC Program.cs
 ```csharp
-// Session
+// Session (480 min = 8 hours, SameAsRequest for HTTP+HTTPS)
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options => {
-    options.IdleTimeout        = TimeSpan.FromMinutes(
-        builder.Configuration.GetValue<int>("SessionSettings:TimeoutMinutes"));
+    options.IdleTimeout        = TimeSpan.FromMinutes(480);
     options.Cookie.HttpOnly    = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.Name        = builder.Configuration["SessionSettings:CookieName"];
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
 
-// HttpClient for API calls
-builder.Services.AddHttpClient("MyProjectAPI", client => {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]!);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
+// HttpClient for API calls (with SSL bypass for dev)
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"]
+    ?? "https://localhost:5001";
+builder.Services.AddHttpClient("ManpowerContractAPI", client => {
+    client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler {
+    ServerCertificateCustomValidationCallback =
+        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
 });
 
 // DI (SOLID: D)
-builder.Services.AddScoped<IApiClientService, ApiClientService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ApiClientService>();
+builder.Services.AddScoped<AuthenticationFilter>();
 
 // Global auth filter (applies to all controllers)
 builder.Services.AddControllersWithViews(options => {
-    options.Filters.Add<AuthenticationFilter>();
-})
-.AddNewtonsoftJson(options => {
-    options.SerializerSettings.ContractResolver =
-        new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver();
+    options.Filters.AddService<AuthenticationFilter>();
 });
 
 // Anti-forgery
 builder.Services.AddAntiforgery(options =>
-    options.HeaderName = "RequestVerificationToken");
+    options.HeaderName = "X-CSRF-TOKEN");
 
 // Global error handling
 app.UseExceptionHandler("/Error/Index");
@@ -1264,10 +1265,10 @@ GOOD: MVC Controller → ApiClientService → API → Repository → DB
 GOOD: Always HttpOnly Cookie
 
 ❌ MISTAKE 5 — No permission check on Save/Delete actions
-GOOD: [HasPermission("ModuleName", "Edit")] on action
+GOOD: [HasPermission("MODULE_CODE.Action")] on action (e.g. [HasPermission("USER_MGMT.Update")])
 
 ❌ MISTAKE 6 — Session not cleared on logout
-GOOD: HttpContext.Session.Clear(); + Response.Cookies.Delete("AuthToken");
+GOOD: HttpContext.Session.Clear(); → redirect to Login
 
 ❌ MISTAKE 7 — [ValidateNever] missing on display-only fields in ViewModel
 GOOD: [ValidateNever] public string PlantName { get; set; }

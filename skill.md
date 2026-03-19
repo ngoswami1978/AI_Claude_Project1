@@ -89,67 +89,76 @@
 
 ### JWT Token Flow
 ```csharp
-// API generates JWT on successful login
+// API generates JWT on successful login (JwtHelper.cs)
+// Config keys: Jwt:Key, Jwt:Issuer, Jwt:Audience, Jwt:ExpiryMinutes
+var key = new SymmetricSecurityKey(
+    Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+var claims = new List<Claim>
+{
+    new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+    new(ClaimTypes.Email, user.Email),
+    new(ClaimTypes.Name, user.FullName),
+    new("RoleId", user.RoleId.ToString()),
+    new(ClaimTypes.Role, user.RoleName),
+    new("Permissions", JsonSerializer.Serialize(permissions))
+};
+
 var token = new JwtSecurityToken(
-    issuer:   _config["JwtSettings:Issuer"],
-    audience: _config["JwtSettings:Audience"],
-    claims:   claims,              // UserId, Email, Role, Permissions
-    expires:  DateTime.UtcNow.AddMinutes(expiryMinutes),
+    issuer:   _config["Jwt:Issuer"],
+    audience: _config["Jwt:Audience"],
+    claims:   claims,
+    expires:  DateTime.UtcNow.AddMinutes(
+                  double.Parse(_config["Jwt:ExpiryMinutes"]!)),
     signingCredentials: creds
 );
-
-// Claims inside token:
-// - UserId       (int)
-// - Email        (string)
-// - RoleId       (int)
-// - RoleName     (string)
-// - Permissions  (JSON array: ["ManpowerContract.View","ManpowerContract.Add"])
 ```
 
-### Cookie-based Session (MVC Side)
+### Session-based Auth (MVC Side)
 ```csharp
-// Store JWT in HttpOnly cookie (not accessible by JS — secure)
-Response.Cookies.Append("AuthToken", token, new CookieOptions {
-    HttpOnly  = true,
-    Secure    = true,
-    SameSite  = SameSiteMode.Strict,
-    Expires   = DateTimeOffset.UtcNow.AddMinutes(expiryMinutes)
-});
+// Store JWT + user info in Session (AccountController.cs)
+// Session uses SameAsRequest cookie policy (works on HTTP and HTTPS)
+HttpContext.Session.SetString("JwtToken", loginResponse.Token);
+HttpContext.Session.SetString("UserId", loginResponse.UserId.ToString());
+HttpContext.Session.SetString("FullName", loginResponse.FullName);
+HttpContext.Session.SetString("Email", loginResponse.Email);
+HttpContext.Session.SetString("RoleName", loginResponse.RoleName);
 
-// Also store user info in Session
-HttpContext.Session.SetString("UserEmail", loginResult.Email);
-HttpContext.Session.SetString("UserName",  loginResult.FullName);
-HttpContext.Session.SetInt32("UserId",     loginResult.UserId);
-HttpContext.Session.SetString("RoleName",  loginResult.RoleName);
+// Permissions stored as comma-separated "MODULE.Action" strings
+HttpContext.Session.SetString("Permissions",
+    string.Join(",", loginResponse.Permissions));
+// e.g. "USER_MGMT.Create,USER_MGMT.View,ROLE_MGMT.View,..."
+
+// Login has try-catch for API connectivity errors
+// catch (HttpRequestException) → "Unable to connect to API server"
+// catch (TaskCanceledException) → "API server did not respond in time"
 ```
 
 ### Permission Attribute (Custom)
 ```csharp
-// Usage on any controller action:
-[HasPermission("ManpowerContract", "Edit")]
-public async Task<IActionResult> Save([FromBody] RecordDto dto) { }
+// Usage on any controller action (single string "MODULE.Action"):
+[HasPermission("USER_MGMT.Create")]
+public async Task<IActionResult> Create([FromBody] UserCreateDto dto) { }
 
-// Implementation:
-public class HasPermissionAttribute : TypeFilterAttribute
-{
-    public HasPermissionAttribute(string module, string action)
-        : base(typeof(PermissionFilter))
-    {
-        Arguments = new object[] { module, action };
-    }
-}
+[HasPermission("ROLE_MGMT.View")]
+public IActionResult Index() { }
 
-public class PermissionFilter : IAuthorizationFilter
+// Implementation (PermissionFilter.cs):
+public class HasPermissionAttribute : Attribute, IAuthorizationFilter
 {
+    private readonly string _permission;
+    public HasPermissionAttribute(string permission) => _permission = permission;
+
     public void OnAuthorization(AuthorizationFilterContext context)
     {
         var permissions = context.HttpContext.Session
-            .GetString("Permissions");
-        var required = $"{_module}.{_action}";
+            .GetString("Permissions") ?? "";
 
-        if (!permissions?.Contains(required) ?? true)
+        if (!permissions.Split(',').Contains(_permission))
         {
-            context.Result = new RedirectResult("/Unauthorized");
+            context.Result = new RedirectToActionResult(
+                "AccessDenied", "Account", null);
         }
     }
 }
@@ -335,41 +344,17 @@ public static class SqlDataReaderExtensions
 ## 📡 API CLIENT SERVICE (MVC → API)
 
 ```csharp
-public interface IApiClientService
+public class ApiClientService
 {
-    Task<ApiResponse<T>?> GetAsync<T>(string endpoint);
-    Task<ApiResponse<T>?> PostAsync<T>(string endpoint, object payload);
-    Task<ApiResponse<T>?> PutAsync<T>(string endpoint, object payload);
-    Task<ApiResponse<T>?> DeleteAsync<T>(string endpoint);
-}
-
-public class ApiClientService : IApiClientService
-{
-    private readonly IHttpClientFactory _factory;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly ILogger<ApiClientService> _logger;
 
-    public async Task<ApiResponse<T>?> GetAsync<T>(string endpoint)
-    {
-        try
-        {
-            var client = CreateClient();
-            var response = await client.GetAsync(endpoint);
-            return await response.Content.ReadFromJsonAsync<ApiResponse<T>>();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "GET failed: {Endpoint}", endpoint);
-            return ApiResponse<T>.Fail("API call failed.");
-        }
-    }
-
-    // CRITICAL: Attach JWT from cookie to every API call
+    // CRITICAL: Attach JWT from session to every API call
     private HttpClient CreateClient()
     {
-        var client = _factory.CreateClient("MyProjectAPI");
-        var token  = _httpContextAccessor.HttpContext?
-            .Request.Cookies["AuthToken"];
+        var client = _httpClientFactory.CreateClient("ManpowerContractAPI");
+        var token = _httpContextAccessor.HttpContext?
+            .Session.GetString("JwtToken");
 
         if (!string.IsNullOrEmpty(token))
             client.DefaultRequestHeaders.Authorization =
@@ -377,6 +362,17 @@ public class ApiClientService : IApiClientService
 
         return client;
     }
+
+    public async Task<ApiResponse<T>> PostAsync<T>(string endpoint, object data)
+    {
+        var client = CreateClient();
+        var json = JsonConvert.SerializeObject(data);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await client.PostAsync(endpoint, content);
+        return await DeserializeResponse<T>(response);
+    }
+
+    // Also: GetAsync<T>, PutAsync<T>, DeleteAsync<T>, GetListAsync<T>
 }
 ```
 
@@ -386,26 +382,24 @@ public class ApiClientService : IApiClientService
 
 ### Rules
 ```
-✅ Session stores: UserId, UserName, Email, RoleName, Permissions list
-✅ Session timeout: 30 minutes (configurable in appsettings.json)
-✅ JWT cookie: HttpOnly + Secure + SameSite=Strict
-✅ On logout: clear session + expire cookie
-✅ On session expired: redirect to /Login with returnUrl
-✅ Sliding expiration: reset timer on each request
+✅ Session stores: JwtToken, UserId, FullName, Email, RoleName, Permissions
+✅ Session timeout: 480 minutes (8 hours, configured in Program.cs)
+✅ Cookie policy: SameAsRequest (works on both HTTP and HTTPS)
+✅ Cookie: HttpOnly + IsEssential
+✅ On logout: HttpContext.Session.Clear() → redirect to Login
+✅ On session expired: AuthenticationFilter redirects to /Account/Login
+✅ AuthenticationFilter: Global IActionFilter, skipped with [SkipAuthFilter]
 ```
 
-### Session Keys (constants)
+### Session Keys (actual keys used in code)
 ```csharp
-public static class SessionKeys
-{
-    public const string UserId      = "SESSION_USER_ID";
-    public const string UserName    = "SESSION_USER_NAME";
-    public const string Email       = "SESSION_EMAIL";
-    public const string RoleName    = "SESSION_ROLE_NAME";
-    public const string RoleId      = "SESSION_ROLE_ID";
-    public const string Permissions = "SESSION_PERMISSIONS";
-    public const string AuthToken   = "AuthToken";           // cookie name
-}
+// Used directly as string keys (no constants class)
+HttpContext.Session.SetString("JwtToken", token);      // JWT for API calls
+HttpContext.Session.SetString("UserId", id.ToString()); // User ID
+HttpContext.Session.SetString("FullName", name);        // Display name
+HttpContext.Session.SetString("Email", email);           // User email
+HttpContext.Session.SetString("RoleName", role);         // Role name
+HttpContext.Session.SetString("Permissions", perms);     // Comma-separated "MODULE.Action"
 ```
 
 ---
@@ -693,20 +687,23 @@ MyProject.sln
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=.;Database=ManpowerDB;..."
+    "DefaultConnection": "Server=10.250.250.25\\devp,57525;User Id=mone_mvc;Password=***;database=POC_AI_NG;TrustServerCertificate=True;MultipleActiveResultSets=true"
   },
-  "JwtSettings": {
-    "Secret":         "YOUR_SUPER_SECRET_KEY_MIN_32_CHARS",
-    "Issuer":         "MyProject.API",
-    "Audience":       "MyProject.MVC",
+  "Jwt": {
+    "Key":            "YourSuperSecretKeyAtLeast32Characters!@#$",
+    "Issuer":         "ManpowerContractAPI",
+    "Audience":       "ManpowerContractMVC",
     "ExpiryMinutes":  480
   },
+  "AllowedOrigins": ["https://localhost:5002", "http://localhost:5003"],
   "ApiSettings": {
     "BaseUrl": "https://localhost:5001"
   },
-  "SessionSettings": {
-    "TimeoutMinutes": 30,
-    "CookieName":     "ManpowerSession"
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": { "Microsoft": "Warning", "System": "Warning" }
+    }
   },
   "Logging": {
     "LogLevel": { "Default": "Information" }
